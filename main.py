@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from tqdm import tqdm
 from bs4 import BeautifulSoup
@@ -7,9 +8,11 @@ from bs4 import BeautifulSoup
 # Get request to website
 #############################
 
-save_path = r'C:\Users\PC3020\Desktop\new'
+save_path = 'C://Users//PC3010//Desktop//new//'
 
 quotation_data = []
+
+period = 0
 
 class data:
     request_main_path= 'https://www.fe-siken.com/kakomon/'
@@ -20,7 +23,7 @@ class data:
         return self.request_main_path+self.request_year+self.request_path
 
 def get_url():
-    for y in range(13, 31):
+    for y in range(1, 31):
         year = str(y)+'_aki/'
         for question in range(1, 81):
             new_data = data()
@@ -37,26 +40,31 @@ def get_url():
             if new_data.full_path() != None:
                 quotation_data.append(new_data)
 
-def save_html(content, request_year, request_path):
+def save_html(content, data):
     try:
-        path = request_year.replace("/","") + "-" + request_path
-        file = open(os.path.join(save_path,path),'w')
+        path = save_path + data.request_year;
+        if not os.path.isdir(path):
+            os.makedirs(path)  
+
+        file_name = path + data.request_path
+
+        file = open(file_name,'w')
         file.write(content)
         file.close()
     except ValueError:
         print (ValueError)
 
-def download(url, pathname):
-    pathname = os.path.join(pathname,"img")
-    if not os.path.isdir(pathname):
-        os.makedirs(pathname)  
+def download(url, data):
+    path = save_path + data.request_year + "img";
+    if not os.path.isdir(path):
+        os.makedirs(path)  
 
     # download the body of response by chunk, not immediately
     response = requests.get(url, stream=True)
     # get the total file size
     file_size = int(response.headers.get("Content-Length", 0))
     # get the file name
-    filename = os.path.join(pathname, url.split("/")[-1])
+    filename = os.path.join(path, url.split("/")[-1])
     # progress bar, changing the unit to bytes instead of iteration (default by tqdm)
     progress = tqdm(response.iter_content(1024), f"Downloading {filename}", total=file_size, unit="B", unit_scale=True, unit_divisor=1024)
     with open(filename, "wb") as f:
@@ -75,8 +83,7 @@ def download_all_data(data):
 
         answers = soup.find_all("div",{"class":"ansbg"})
 
-        #print(answers[1].prettify())
-        save_html(str(answers[1]), data.request_year, data.request_path);
+        save_html(str(answers[1]), data);
 
         images = answers[1].find_all("img");
 
@@ -84,7 +91,7 @@ def download_all_data(data):
             image_url = image.attrs.get("src")
             if image_url:
                 file_path = data.request_main_path + data.request_year + image_url
-                download(file_path, save_path)
+                download(file_path, data)
 
     else:
         print("not has data at: " + data.request_path)
@@ -93,8 +100,14 @@ def download_all_data(data):
 get_url()
 
 for data in quotation_data:
-    download_all_data(data)
-    print(data.full_path())
+    if period >= 500:
+        print("sleep 5s")
+        time.sleep(5)
+        period = 0
+    else:
+        download_all_data(data)
+        print(data.full_path())
+        period = period + 1
 
 #test = data()
 #test.request_main_path='https://www.fe-siken.com/kakomon/'
